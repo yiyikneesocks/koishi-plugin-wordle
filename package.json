@@ -1,5 +1,5 @@
 {
-  "name": "koishi-plugin-wordle",
+  "name": "@azulores/koishi-plugin-wordle",
   "description": "Wordle 猜单词游戏 for Koishi：图片棋盘 + QWERTY 键盘，支持指定字母数、自定义词库与提示语",
   "version": "1.0.0",
   "main": "lib/index.js",
@@ -28,5 +28,16 @@
       "optional": true
     }
   },
-  "dependencies": {}
+  "dependencies": {},
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yiyikneesocks/koishi-plugin-wordle.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yiyikneesocks/koishi-plugin-wordle/issues"
+  },
+  "homepage": "https://github.com/yiyikneesocks/koishi-plugin-wordle#readme"
 }

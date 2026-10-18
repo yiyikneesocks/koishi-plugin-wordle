@@ -1,6 +1,6 @@
-# koishi-plugin-wordle
+# @azulores/koishi-plugin-wordle
 
-[![npm](https://img.shields.io/npm/v/koishi-plugin-wordle?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-wordle)
+[![npm](https://img.shields.io/npm/v/@azulores/koishi-plugin-wordle?style=flat-square)](https://www.npmjs.com/package/@azulores/koishi-plugin-wordle)
 
 Wordle 猜单词游戏，支持图片棋盘 + QWERTY 键盘。
 
@@ -8,7 +8,7 @@ Wordle 猜单词游戏，支持图片棋盘 + QWERTY 键盘。
 
 ```bash
 # 核心插件（必需）
-npm install koishi-plugin-wordle
+npm install @azulores/koishi-plugin-wordle
 
 # 可选：图片棋盘（推荐）。不装则自动回退为纯文本棋盘
 npm install koishi-plugin-puppeteer
