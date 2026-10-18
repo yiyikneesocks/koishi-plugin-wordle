@@ -1,7 +1,7 @@
 {
   "name": "@azulores/koishi-plugin-wordle",
   "description": "Wordle 猜单词游戏 for Koishi：图片棋盘 + QWERTY 键盘，支持指定字母数、自定义词库与提示语",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -28,7 +28,6 @@
       "optional": true
     }
   },
-  "dependencies": {},
   "publishConfig": {
     "access": "public"
   },

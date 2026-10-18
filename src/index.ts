@@ -17,6 +17,9 @@ export interface Config {
   maxGuesses?: number
   // 默认单词长度（wd 不带数字时）；0 = 随机长度
   defaultLength?: number
+  // 允许的字母数范围
+  minLength?: number
+  maxLength?: number
   // 是否渲染图片（需要 puppeteer）；关闭则纯文本
   image?: boolean
   // —— 自定义提示语（可改成自己喜欢的话）——
@@ -39,6 +42,8 @@ export const Config: Schema<Config> = Schema.object({
     .description('最大猜测次数').default(6).min(1).max(20),
   defaultLength: Schema.number()
     .description('默认单词长度（0 = 随机）').default(0).min(0).max(20),
+  minLength: Schema.number().description('允许的最小字母数').default(4).min(2).max(20),
+  maxLength: Schema.number().description('允许的最大字母数').default(10).min(2).max(20),
   image: Schema.boolean()
     .description('是否渲染图片棋盘（开启需安装 koishi-plugin-puppeteer）').default(true),
   textAlready: Schema.string().description('已有游戏进行中的提示'),
@@ -394,19 +399,47 @@ export function apply(ctx: Context, config: Config) {
     .shortcut('停止猜单词', { options: { gstop: true } })
     .shortcut('wdq', { options: { gstop: true } })
     .shortcut('wdquit', { options: { gstop: true } })
+    .shortcut('wdn', { options: { gnew: true }, fuzzy: true })
     .option('gstart', '开始游戏')
+    .option('gnew', '开一局并把参数作为第一次猜测（如 wdn hello）')
     .option('gstop', '停止游戏')
     .action(async ({ session, options }, input) => {
       const { cid } = session;
+      const rawInput = (input || '').trim()
+
+      const minLen = config.minLength ?? 4
+      const maxLen = config.maxLength ?? 10
+
+      // ── `wdn <word>` 参数校验（任一不通过 → 不开局）──
+      //   1) 非纯字母            → 不开局，返回 textInvalid
+      //   2) 字母数不在 4~10     → 不开局，返回 textLength
+      //   3) 字母数合法但非单词  → **照常开局**，返回 textInvalid（不消耗次数）
+      let firstGuess: string | undefined
+      if (options.gnew && rawInput) {
+        if (!/^[A-Za-z]+$/.test(rawInput)) {
+          return t.invalid
+        }
+        const word = rawInput.toLowerCase()
+        if (word.length < minLen || word.length > maxLen) {
+          return t.length
+        }
+        firstGuess = word
+      } else if (options.gnew && !rawInput) {
+        // `wdn` 不带参数 → 等同于 `wd`
+        options.gstart = true
+      }
+
       // 无参数 → 开始；纯数字参数 → 以指定字母数开始
-      if (!options.gstop && (!input || /^\d+$/.test((input || '').trim()))) { options.gstart = true };
+      if (!options.gstop && !firstGuess && (!rawInput || /^\d+$/.test(rawInput))) {
+        options.gstart = true
+      }
 
       // 指定字母数：`wd 5` / `猜单词 5`（input 为纯数字）
       let wordLength: number | undefined
-      if (options.gstart && input && /^\d+$/.test(input.trim())) {
-        wordLength = parseInt(input.trim(), 10)
-        if (wordLength < 2 || wordLength > 20) {
-          return '字母数请填 2~20 之间的整数';
+      if (options.gstart && rawInput && /^\d+$/.test(rawInput)) {
+        wordLength = parseInt(rawInput, 10)
+        if (wordLength < minLen || wordLength > maxLen) {
+          return t.length;
         }
       } else if (options.gstart && config.defaultLength > 0) {
         wordLength = config.defaultLength
@@ -434,6 +467,9 @@ export function apply(ctx: Context, config: Config) {
         await session.send(text)
       }
 
+      // `wdn <word>` 也视为开局
+      if (firstGuess) options.gstart = true
+
       if (options.gstart) {
         if (gameData[cid]) {
           await session.send(t.already);
@@ -443,7 +479,9 @@ export function apply(ctx: Context, config: Config) {
           // 初始化游戏数据
           let wordmean: string
           try {
-            wordmean = await getRandomWord(answerDict, wordLength)
+            // wdn <word> 时用该词长度决定答案长度
+            const len = firstGuess ? firstGuess.length : wordLength
+            wordmean = await getRandomWord(answerDict, len)
           } catch (e: any) {
             return `出错了：${e?.message || e}`
           }
@@ -460,6 +498,36 @@ export function apply(ctx: Context, config: Config) {
           gameData[cid].test = { value: '*'.repeat(gameData[cid].lenth) };
           await session.send(`请用“wd ${gameData[cid].test.value}”的形式输入你猜测的单词：`);
           await sendBoard(t.start);
+
+          // wdn <word>：立刻把该词作为第一次猜测
+          if (firstGuess) {
+            // 长度已在前面校验过，这里只可能因字典长度不同而失配（防御）
+            if (firstGuess.length !== gameData[cid].lenth) {
+              await session.send(t.length);
+              return;
+            }
+            // 规则 3：字母合法但不在词库 → 已开局，只提示，不消耗次数
+            if (WordJud(guessDict, firstGuess) === 0) {
+              await session.send(t.invalid);
+              return;
+            }
+            const aa = testword(gameData[cid].word, firstGuess);
+            gameData[cid].test.value = aa.test;
+            gameData[cid].guesses.push({ letters: firstGuess, marks: aa.test });
+            if (aa.iftest === 0) {
+              gameData[cid].ct += 1;
+              if (gameData[cid].ct >= maxGuesses) {
+                await sendBoard(t.lose, gameData[cid].word);
+                delete gameData[cid];
+                return;
+              }
+              await sendBoard();
+            } else {
+              await sendBoard(t.win, gameData[cid].word);
+              delete gameData[cid];
+              return;
+            }
+          }
           return;
         }
       }
