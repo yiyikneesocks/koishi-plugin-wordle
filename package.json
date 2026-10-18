@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-wordle",
-  "description": "",
-  "version": "0.0.1",
+  "description": "Wordle 猜单词游戏 for Koishi：图片棋盘 + QWERTY 键盘，支持指定字母数、自定义词库与提示语",
+  "version": "1.0.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -9,14 +9,24 @@
     "dist"
   ],
   "license": "MIT",
-  "scripts": {},
+  "author": "yiyikneesocks",
   "keywords": [
     "chatbot",
     "koishi",
-    "plugin"
+    "plugin",
+    "wordle",
+    "game"
   ],
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').copyFileSync('src/tiku.txt','lib/tiku.txt');require('fs').copyFileSync('src/djciku.txt','lib/djciku.txt')\""
+  },
   "peerDependencies": {
-    "@koishijs/plugin-console": "^5.16.0",
-    "koishi": "^4.15.0"
-  }
+    "koishi": "^4.18.11"
+  },
+  "peerDependenciesMeta": {
+    "koishi-plugin-puppeteer": {
+      "optional": true
+    }
+  },
+  "dependencies": {}
 }
